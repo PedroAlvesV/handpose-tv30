@@ -11,10 +11,10 @@ def dist(x1, y1, x2, y2):
     
 def is_closed(finger):
     if finger == 1:
-        # d1 = tip of thumb to pinky knuckle
-        # d2 = index finger knuckle to pinky knuckle
-        d1 = dist(lmList[4][1], lmList[4][2], lmList[17][1], lmList[17][2])
-        d2 = dist(lmList[5][1], lmList[5][2], lmList[17][1], lmList[17][2])
+        # d1 = tip of thumb to ring finger knuckle
+        # d2 = tip of thumb to thumb knuckle
+        d1 = dist(lmList[4][1], lmList[4][2], lmList[13][1], lmList[13][2])
+        d2 = dist(lmList[4][1], lmList[4][2], lmList[2][1], lmList[2][2])
     else:
         # d1 = tip to wrist 
         # d2 = proximal joint to wrist
