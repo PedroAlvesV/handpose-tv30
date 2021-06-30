@@ -1,6 +1,30 @@
 import cv2
 import time
 import HandTrackingModule as htm
+from sys import argv
+import paho.mqtt.client as mqtt
+
+DEBUG = False
+QUIET = False
+
+if len(argv) > 1:
+    DEBUG = argv[1] == '-d' or argv[1] == '--debug'
+    QUIET = argv[1] == '-q' or argv[1] == '--quiet'
+
+broker_address = input("Broker address: ")
+
+print("Attempting connection...")
+
+# The callback for when the client receives a CONNACK response from the server.
+def on_connect(client, userdata, flags, rc):
+    print("Connected with result code "+str(rc))
+
+client = mqtt.Client()
+client.on_connect = on_connect
+
+client.connect(broker_address, 1883, 60)
+
+print(f"Connected to {broker_address}:1883")
 
 def indexOf(finger, distance=0):
     if finger < 1 or finger > 5 or distance < 0 or distance > 3: return -1
@@ -34,6 +58,8 @@ detector = htm.handDetector(maxHands=1, detectionCon=0.75)
 
 poses = []
 
+__UNDEF = "undefined"
+
 # 0 fingers pose
 p = {"FIST": [False]*5}
 poses.append(p)
@@ -41,7 +67,7 @@ poses.append(p)
 # 1 finger poses
 p = {
     "POINT": [False, True, False, False, False],
-    "THUMBS": [True, False, False, False, False]
+    "FIST": [True, False, False, False, False]
 }
 poses.append(p)
 
@@ -49,7 +75,8 @@ poses.append(p)
 p = {
     "PEACE": [False, True, True, False, False],
     "ROCK": [False, True, False, False, True],
-    "SHAKA": [True, False, False, False, True]
+    "SHAKA": [True, False, False, False, True],
+    "LOSER": [True, True, False, False, False]
 }
 poses.append(p)
 
@@ -73,11 +100,32 @@ def getPose(fingers):
     for pose in poses[totalFingers]:
         if poses[totalFingers][pose] == fingers:
             return pose
-    return "UNDEF"
+    return __UNDEF
 
-# poderia codificar em binário, também, e usar a própria sequência como chave de dicionário. ex.: "01000" como "POINT"
+INTERVAL = 0.4
+    
+timer = time.time()
+
+guesses = dict()
+guesses[__UNDEF] = 0
+for p in poses:
+    for k in p:
+        guesses[k] = 0
+
+def reset_guesses():
+    for pose in guesses:
+        guesses[pose] = 0
+
+def evaluate(g):
+    max_key = max(g, key=g.get)
+    return max_key
+
+last_result = __UNDEF
 
 while True:
+
+    client.loop(timeout=0.05)
+
     success, img = cap.read()
     img = detector.findHands(img)
     lmList = detector.findPosition(img, draw=False)
@@ -87,17 +135,33 @@ while True:
         fingers = []
         for i in range(1,6):
             fingers.append(not is_closed(i))
-        print(fingers, getPose(fingers))
+        guesses[getPose(fingers)] += 1
+        #print(fingers, getPose(fingers))
 
     cTime = time.time()
     fps = 1 / (cTime - pTime)
     pTime = cTime
 
-    cv2.putText(img, f'FPS: {int(fps)}', (20, 50), cv2.FONT_HERSHEY_PLAIN, 3, (255, 0, 0), 3)
+    t = time.time() - timer
+    
+    if t > INTERVAL:
+        #print(guesses)
+        result = evaluate(guesses)
+        if DEBUG:
+            print(result)
+        if result != __UNDEF and result != last_result:
+            client.publish("handpose_recog", result)
+            if not QUIET:
+                print(f"-> Published '{result}'")
+            last_result = result
+        reset_guesses()
+        timer += t
 
-    cv2.imshow("Image", img)
-    if cv2.waitKey(1) & 0xFF == ord('q') or cv2.waitKey(1) & 0xFF == ord('Q'):
-        break
+    if DEBUG:
+        cv2.putText(img, f'FPS: {int(fps)}', (20, 50), cv2.FONT_HERSHEY_PLAIN, 3, (255, 0, 0), 3)
+        cv2.imshow("Image", img)
+        if cv2.waitKey(1) & 0xFF == ord('q') or cv2.waitKey(1) & 0xFF == ord('Q'):
+            break
 
 cap.release()
 cv2.destroyAllWindows()
