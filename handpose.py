@@ -76,7 +76,7 @@ poses.append(p)
 # 1 finger poses
 p = {
     "POINT": [False, True, False, False, False],
-    "FIST": [True, False, False, False, False]
+    "THUMBS": [True, False, False, False, False]
 }
 poses.append(p)
 
