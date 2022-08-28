@@ -4,7 +4,7 @@ import HandTrackingModule as htm
 from sys import argv
 import paho.mqtt.client as mqtt
 import argparse
-from poses import poses
+from poses import poses, defined_poses
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-d', '--debug', action='store_true')
@@ -23,6 +23,10 @@ TRIGGER_POSE = args.trigger_pose.upper()
 if MAX_HANDS < 1:
     print("'max_hands' must be at least 1")
     exit()
+
+if not TRIGGER_POSE in defined_poses:
+    print("unknown 'trigger_pose'. proceeding as if it was not defined.")
+    TRIGGER_POSE = None
 
 broker_address = "localhost" #input("Broker address: ")
 
@@ -113,6 +117,12 @@ def read_hand(img, handNo=0):
         hands[handNo][getPose(fingers)] += 1
         #print(fingers, getPose(fingers))
 
+def publish_result(result):
+    client.publish("handpose_recog", result)
+    if not QUIET:
+        print(f"-> Published '{result}'")
+    last_results[i] = result
+
 while True:
 
     client.loop(timeout=0.05)
@@ -131,16 +141,28 @@ while True:
     
     if t > INTERVAL:
 
+        is_trigger_up = False
+        trigger_hand = -1
+
         for i in range(numHands):
+            result = evaluate(hands[i])
+            if result == TRIGGER_POSE and not is_trigger_up:
+                is_trigger_up = True
+                trigger_hand = i
+                break
+
+        for i in range(numHands):
+            if i == trigger_hand:
+                continue
             hand = hands[i]
             result = evaluate(hand)
             if DEBUG:
-                print(result)
+                pass
+                # print(is_trigger_up, result)
             if result != __UNDEF and result != last_results[i]:
-                client.publish("handpose_recog", result)
-                if not QUIET:
-                    print(f"-> Published '{result}'")
-                last_results[i] = result
+                if not TRIGGER_POSE or (TRIGGER_POSE and is_trigger_up):
+                    publish_result(result)
+                    last_results[i] = result
             reset_hand(i)
             timer += t
 

@@ -1,3 +1,6 @@
+from signal import default_int_handler
+
+
 poses = []
 
 # 0 fingers pose
@@ -37,3 +40,8 @@ poses.append(p)
 # 5 fingers poses
 p = {"OPEN": [True]*5}
 poses.append(p)
+
+defined_poses = set()
+for pose_class in poses:
+    for pose in pose_class:
+        defined_poses.add(pose)
