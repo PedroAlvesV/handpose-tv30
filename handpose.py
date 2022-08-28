@@ -3,22 +3,25 @@ import time
 import HandTrackingModule as htm
 from sys import argv
 import paho.mqtt.client as mqtt
+import argparse
 
-DEBUG = False
-QUIET = False
+parser = argparse.ArgumentParser()
+parser.add_argument('-d', '--debug', action='store_true')
+parser.add_argument('-q', '--quiet', action='store_true')
+parser.add_argument('max_hands', type=int)
+parser.add_argument('trigger_pose', default=None, nargs="?")
 
-if len(argv) < 2 or argv[1][0] == '-':
-    print("usage: python3 handpose.py <max-hands> [-d | --debug]")
-    exit()
+args = parser.parse_args()
+# print(args)
 
-MAX_HANDS = int(argv[1])
+DEBUG = args.debug
+QUIET = args.quiet
+MAX_HANDS = args.max_hands
+TRIGGER_POSE = args.trigger_pose.upper()
+
 if MAX_HANDS < 1:
-    print("'max-hands' must be at least 1")
+    print("'max_hands' must be at least 1")
     exit()
-
-if len(argv) > 2:
-    DEBUG = argv[2] == '-d' or argv[2] == '--debug'
-    QUIET = argv[2] == '-q' or argv[2] == '--quiet'
 
 broker_address = "localhost" #input("Broker address: ")
 
