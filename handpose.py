@@ -7,11 +7,20 @@ import paho.mqtt.client as mqtt
 DEBUG = False
 QUIET = False
 
-if len(argv) > 1:
-    DEBUG = argv[1] == '-d' or argv[1] == '--debug'
-    QUIET = argv[1] == '-q' or argv[1] == '--quiet'
+if len(argv) < 2 or argv[1][0] == '-':
+    print("usage: python3 handpose.py <max-hands> [-d | --debug]")
+    exit()
 
-broker_address = input("Broker address: ")
+MAX_HANDS = int(argv[1])
+if MAX_HANDS < 1:
+    print("'max-hands' must be at least 1")
+    exit()
+
+if len(argv) > 2:
+    DEBUG = argv[2] == '-d' or argv[2] == '--debug'
+    QUIET = argv[2] == '-q' or argv[2] == '--quiet'
+
+broker_address = "localhost" #input("Broker address: ")
 
 print("Attempting connection...")
 
@@ -33,7 +42,7 @@ def indexOf(finger, distance=0):
 def dist(x1, y1, x2, y2):
     return ((x2 - x1)**2 + (y2 - y1)**2)**0.5
     
-def is_closed(finger):
+def is_closed(finger, lmList):
     if finger == 1:
         # d1 = tip of thumb to ring finger knuckle
         # d2 = tip of thumb to thumb knuckle
@@ -54,7 +63,7 @@ cap.set(4, hCam)
 
 pTime = 0
 
-detector = htm.handDetector(maxHands=1, detectionCon=0.75)
+detector = htm.handDetector(maxHands=MAX_HANDS, detectionCon=0.75)
 
 poses = []
 
@@ -106,37 +115,46 @@ INTERVAL = 0.4
     
 timer = time.time()
 
-guesses = dict()
-guesses[__UNDEF] = 0
-for p in poses:
-    for k in p:
-        guesses[k] = 0
+hands = dict()
+last_results = dict()
+for i in range(MAX_HANDS):
+    hands[i] = dict()
+    hands[i][__UNDEF] = 0
+    for p in poses:
+        for k in p:
+            hands[i][k] = 0
+    last_results[i] = __UNDEF
 
-def reset_guesses():
-    for pose in guesses:
-        guesses[pose] = 0
+def reset_hand(handNo):
+    hand = hands[handNo]
+    for pose in hand:
+        hand[pose] = 0
 
 def evaluate(g):
     max_key = max(g, key=g.get)
     return max_key
 
-last_result = __UNDEF
+def read_hand(img, handNo=0):
+    
+    lmList = detector.findPosition(img, handNo=handNo, draw=False)
+
+    if len(lmList) != 0:
+        
+        fingers = []
+        for i in range(1,6):
+            fingers.append(not is_closed(i, lmList))
+        hands[handNo][getPose(fingers)] += 1
+        #print(fingers, getPose(fingers))
 
 while True:
 
     client.loop(timeout=0.05)
 
     success, img = cap.read()
-    img = detector.findHands(img)
-    lmList = detector.findPosition(img, draw=False)
+    numHands, img = detector.findHands(img)
 
-    if len(lmList) != 0:
-        
-        fingers = []
-        for i in range(1,6):
-            fingers.append(not is_closed(i))
-        guesses[getPose(fingers)] += 1
-        #print(fingers, getPose(fingers))
+    for i in range(numHands):
+        read_hand(img, handNo=i)
 
     cTime = time.time()
     fps = 1 / (cTime - pTime)
@@ -145,17 +163,19 @@ while True:
     t = time.time() - timer
     
     if t > INTERVAL:
-        #print(guesses)
-        result = evaluate(guesses)
-        if DEBUG:
-            print(result)
-        if result != __UNDEF and result != last_result:
-            client.publish("handpose_recog", result)
-            if not QUIET:
-                print(f"-> Published '{result}'")
-            last_result = result
-        reset_guesses()
-        timer += t
+
+        for i in range(numHands):
+            hand = hands[i]
+            result = evaluate(hand)
+            if DEBUG:
+                print(result)
+            if result != __UNDEF and result != last_results[i]:
+                client.publish("handpose_recog", result)
+                if not QUIET:
+                    print(f"-> Published '{result}'")
+                last_results[i] = result
+            reset_hand(i)
+            timer += t
 
     if DEBUG:
         cv2.putText(img, f'FPS: {int(fps)}', (20, 50), cv2.FONT_HERSHEY_PLAIN, 3, (255, 0, 0), 3)
