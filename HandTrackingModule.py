@@ -1,10 +1,3 @@
-"""
-Hand Tracing Module
-By: Murtaza Hassan
-Youtube: http://www.youtube.com/c/MurtazasWorkshopRoboticsandAI
-Website: https://www.computervision.zone
-"""
-
 import cv2
 import mediapipe as mp
 import time
@@ -19,7 +12,10 @@ class handDetector():
 
         self.mpHands = mp.solutions.hands
         self.hands = self.mpHands.Hands(self.mode, self.maxHands,
-                                        self.detectionCon, self.trackCon)
+                                        model_complexity=0,
+                                        min_detection_confidence=self.detectionCon,
+                                        min_tracking_confidence=self.trackCon)
+                                        
         self.mpDraw = mp.solutions.drawing_utils
 
     def findHands(self, img, draw=True):
