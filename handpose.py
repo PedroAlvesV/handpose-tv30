@@ -149,6 +149,7 @@ while True:
             if result == TRIGGER_POSE and not is_trigger_up:
                 is_trigger_up = True
                 trigger_hand = i
+                reset_hand(i)
                 break
 
         for i in range(numHands):
@@ -157,8 +158,7 @@ while True:
             hand = hands[i]
             result = evaluate(hand)
             if DEBUG:
-                pass
-                # print(is_trigger_up, result)
+                print(is_trigger_up, result)
             if result != __UNDEF and result != last_results[i]:
                 if not TRIGGER_POSE or (TRIGGER_POSE and is_trigger_up):
                     publish_result(result)
