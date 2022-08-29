@@ -18,7 +18,8 @@ args = parser.parse_args()
 DEBUG = args.debug
 QUIET = args.quiet
 MAX_HANDS = args.max_hands
-TRIGGER_POSE = args.trigger_pose.upper()
+TRIGGER_POSE = args.trigger_pose
+if TRIGGER_POSE: TRIGGER_POSE = TRIGGER_POSE.upper()
 
 if MAX_HANDS < 1:
     print("'max_hands' must be at least 1")
