@@ -9,31 +9,36 @@ poses.append(p)
 
 # 1 finger poses
 p = {
+    "THUMB": [True, False, False, False, False],
     "POINT": [False, True, False, False, False],
-    "THUMBS": [True, False, False, False, False],
+    "MIDDLE": [False, False, True, False, False],
+    "RING": [False, False, False, True, False],
     "PINKY": [False, False, False, False, True]
 }
 poses.append(p)
 
 # 2 fingers poses
 p = {
+    "L": [True, True, False, False, False],
     "PEACE": [False, True, True, False, False],
     "ROCK": [False, True, False, False, True],
-    "SHAKA": [True, False, False, False, True],
-    "LOSER": [True, True, False, False, False]
+    "SHAKA": [True, False, False, False, True]
 }
 poses.append(p)
 
 # 3 fingers poses
 p = {
+    "THUMB_THREE": [True, True, True, False, False],
     "THREE": [False, True, True, True, False],
+    "PINKY_THREE": [False, False, True, True, True],
     "LOVE": [True, True, False, False, True]
 }
 poses.append(p)
 
 # 4 fingers poses
 p = {
-    "FOUR": [False, True, True, True, True]
+    "FOUR": [False, True, True, True, True],
+    "THUMB_FOUR": [True, True, True, True, False]
 }
 poses.append(p)
 
