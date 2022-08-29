@@ -83,7 +83,7 @@ def getPose(fingers):
             return pose
     return __UNDEF
 
-INTERVAL = 0.4
+INTERVAL = 0.25
     
 timer = time.time()
 
