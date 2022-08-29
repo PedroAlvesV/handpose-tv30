@@ -1,6 +1,3 @@
-from signal import default_int_handler
-
-
 poses = []
 
 # 0 fingers pose
